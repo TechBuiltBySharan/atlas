@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-atlas-engine
 .turbo
 *.log
 .DS_Store

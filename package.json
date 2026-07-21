@@ -17,7 +17,11 @@
     "bootstrap": "pnpm --filter @atlas/cli start -- bootstrap",
     "mcp": "pnpm --filter @atlas/mcp start",
     "compose:up": "docker compose up --build",
-    "compose:down": "docker compose down"
+    "compose:down": "docker compose down",
+    "build:engine": "node scripts/build-atlas-engine.mjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
 }
