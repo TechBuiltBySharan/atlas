@@ -1,0 +1,25 @@
+{
+  "name": "refund-after-capture",
+  "description": "Optional: captured payment then refund processed",
+  "steps": [
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "payment",
+      "status": "captured",
+      "minCount": 1
+    },
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "refund",
+      "minCount": 1
+    },
+    {
+      "op": "assert.webhook",
+      "provider": "razorpay",
+      "event": "refund.processed",
+      "minCount": 1
+    }
+  ]
+}

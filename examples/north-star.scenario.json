@@ -1,0 +1,39 @@
+{
+  "name": "failed-then-settle",
+  "description": "North-star chaos: fail payments, delay+duplicate webhook, settle order",
+  "steps": [
+    {
+      "op": "failures.set",
+      "rules": [
+        { "type": "razorpay.payment.fail_next", "count": 3 },
+        {
+          "type": "webhook.delay",
+          "provider": "razorpay",
+          "ms": 42000,
+          "count": 1,
+          "event": "payment.captured"
+        },
+        {
+          "type": "webhook.duplicate",
+          "provider": "razorpay",
+          "count": 1,
+          "event": "payment.captured"
+        }
+      ]
+    },
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "order",
+      "status": "paid",
+      "minCount": 1
+    },
+    { "op": "clock.advance", "ms": 42000 },
+    {
+      "op": "assert.webhook",
+      "provider": "razorpay",
+      "event": "payment.captured",
+      "minCount": 2
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "ticket-purchase",
+  "description": "Sociatribe ticket path: create order → capture payment → order paid (use with live HTTP runner)",
+  "steps": [
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "order",
+      "status": "paid",
+      "minCount": 1
+    },
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "payment",
+      "status": "captured",
+      "minCount": 1
+    },
+    {
+      "op": "assert.webhook",
+      "provider": "razorpay",
+      "event": "payment.captured",
+      "minCount": 1
+    }
+  ]
+}

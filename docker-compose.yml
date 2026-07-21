@@ -1,0 +1,22 @@
+services:
+  atlas:
+    build: .
+    ports:
+      - "4400:4400"
+    environment:
+      ATLAS_HOST: "0.0.0.0"
+      ATLAS_PORT: "4400"
+      ATLAS_STORE: "${ATLAS_STORE:-memory}"
+      ATLAS_SQLITE_PATH: "${ATLAS_SQLITE_PATH:-/data/atlas.sqlite}"
+      ATLAS_CONTROL_TOKEN: "${ATLAS_CONTROL_TOKEN:-}"
+      ATLAS_CLOCK: "${ATLAS_CLOCK:-virtual}"
+    volumes:
+      - atlas-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4400/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  atlas-data:

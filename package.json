@@ -1,0 +1,23 @@
+{
+  "name": "atlas",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Stateful simulation platform for external provider APIs",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm --filter @atlas/server dev",
+    "site": "pnpm --filter @atlas/server dev",
+    "test": "pnpm --filter @atlas/core test && pnpm --filter @atlas/providers-whatsapp test && pnpm --filter @atlas/server test",
+    "typecheck": "pnpm -r run typecheck",
+    "atlas": "pnpm --filter @atlas/cli start",
+    "bootstrap": "pnpm --filter @atlas/cli start -- bootstrap",
+    "mcp": "pnpm --filter @atlas/mcp start",
+    "compose:up": "docker compose up --build",
+    "compose:down": "docker compose down"
+  },
+  "license": "MIT"
+}

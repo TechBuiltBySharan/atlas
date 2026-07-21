@@ -1,0 +1,32 @@
+{
+  "name": "subscription-lifecycle",
+  "description": "Plan → subscription activate → charge → invoice (assert after control charge)",
+  "steps": [
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "plan",
+      "minCount": 1
+    },
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "subscription",
+      "status": "active",
+      "minCount": 1
+    },
+    {
+      "op": "assert.entity",
+      "provider": "razorpay",
+      "kind": "invoice",
+      "status": "paid",
+      "minCount": 1
+    },
+    {
+      "op": "assert.webhook",
+      "provider": "razorpay",
+      "event": "subscription.charged",
+      "minCount": 1
+    }
+  ]
+}
