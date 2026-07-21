@@ -1,4 +1,4 @@
-import { type AtlasStore, type Workspace, hmacSha256Hex } from "@atlas/core";
+import { type AtlasStore, type Workspace, getRazorpayCredentials, hmacSha256Hex } from "@atlas/core";
 import { Hono } from "hono";
 import { z } from "zod";
 import { checkoutJsSource } from "./checkout.js";
@@ -57,7 +57,8 @@ export function createRazorpayApp(store: AtlasStore): Hono<Vars> {
       .safeParse(body);
     if (!parsed.success) return error(c, 400, parsed.error.message);
     const ws = store.findWorkspaceByRazorpayKey(parsed.data.key);
-    if (!ws?.credentials.razorpay) return error(c, 401, "Invalid API key");
+    const creds = ws ? getRazorpayCredentials(ws) : undefined;
+    if (!ws || !creds) return error(c, 401, "Invalid API key");
     const order = svc.getOrder(ws, parsed.data.order_id);
     if (!order) return error(c, 400, "Order not found");
     try {
@@ -71,7 +72,7 @@ export function createRazorpayApp(store: AtlasStore): Hono<Vars> {
         return error(c, 400, payment.error_description ?? "Payment failed");
       }
       const signature = hmacSha256Hex(
-        ws.credentials.razorpay.keySecret,
+        creds.keySecret,
         `${order.id}|${payment.id}`,
       );
       return c.json({
@@ -97,8 +98,9 @@ export function createRazorpayApp(store: AtlasStore): Hono<Vars> {
     const ws =
       (headerWs ? store.tryGetWorkspace(headerWs) : undefined) ??
       store.findWorkspaceByRazorpayKey(auth.keyId);
-    if (!ws?.credentials.razorpay) return error(c, 401, "Invalid API key");
-    if (ws.credentials.razorpay.keySecret !== auth.keySecret) {
+    const rzpCreds = ws ? getRazorpayCredentials(ws) : undefined;
+    if (!ws || !rzpCreds) return error(c, 401, "Invalid API key");
+    if (rzpCreds.keySecret !== auth.keySecret) {
       return error(c, 401, "Invalid API key");
     }
     c.set("workspace", ws);

@@ -2,6 +2,8 @@ import {
   type AtlasStore,
   type Workspace,
   createId,
+  getWhatsAppCredentials,
+  type WhatsAppCredentials,
 } from "@atlas/core";
 
 export type WaMessageStatus = "accepted" | "sent" | "delivered" | "read" | "failed";
@@ -44,8 +46,8 @@ function ts(ws: Workspace, store: AtlasStore): number {
 export class WhatsAppService {
   constructor(private store: AtlasStore) {}
 
-  private creds(ws: Workspace) {
-    const c = ws.credentials.whatsapp;
+  private creds(ws: Workspace): WhatsAppCredentials {
+    const c = getWhatsAppCredentials(ws);
     if (!c) throw Object.assign(new Error("WhatsApp credentials not issued"), { status: 401 });
     return c;
   }

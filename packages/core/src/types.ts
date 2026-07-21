@@ -1,6 +1,6 @@
 import { createHmac, generateKeyPairSync, randomBytes } from "node:crypto";
 
-export type ProviderName = "razorpay" | "whatsapp";
+export type ProviderName = string;
 
 export type AtlasEvent = {
   id: string;
@@ -64,13 +64,18 @@ export type WhatsAppCredentials = {
   wabaId: string;
   appSecret: string;
   verifyToken: string;
-  /** Atlas Flows endpoint private key (PEM) — decrypts Meta-shaped requests to Atlas */
   flowsPrivateKeyPem: string;
-  /** Matching public key (PEM) — register with Meta / give to consumer for tests */
   flowsPublicKeyPem: string;
-  /** Optional consumer public key — Atlas encrypts as Meta when posting to Sociatribe Flows URL */
   consumerFlowsPublicKeyPem?: string;
 };
+
+export function getRazorpayCredentials(ws: Workspace): RazorpayCredentials | undefined {
+  return ws.credentials.razorpay as RazorpayCredentials | undefined;
+}
+
+export function getWhatsAppCredentials(ws: Workspace): WhatsAppCredentials | undefined {
+  return ws.credentials.whatsapp as WhatsAppCredentials | undefined;
+}
 
 export type Workspace = {
   id: string;
@@ -80,14 +85,8 @@ export type Workspace = {
   events: AtlasEvent[];
   entities: Map<string, unknown>;
   failureRules: FailureRule[];
-  webhooks: {
-    razorpay?: WebhookTarget;
-    whatsapp?: WebhookTarget;
-  };
-  credentials: {
-    razorpay?: RazorpayCredentials;
-    whatsapp?: WhatsAppCredentials;
-  };
+  webhooks: Record<string, WebhookTarget | undefined>;
+  credentials: Record<string, unknown>;
   scheduledWebhooks: ScheduledWebhook[];
   /** Sequential counters for deterministic-ish IDs */
   counters: Record<string, number>;

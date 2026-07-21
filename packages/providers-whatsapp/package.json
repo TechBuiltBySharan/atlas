@@ -5,7 +5,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./module": "./src/module.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -14,6 +15,7 @@
   },
   "dependencies": {
     "@atlas/core": "workspace:*",
+    "@atlas/provider-sdk": "workspace:*",
     "hono": "^4.7.4",
     "zod": "^3.24.2"
   },

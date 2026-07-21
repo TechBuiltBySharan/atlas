@@ -1,4 +1,4 @@
-import { type AtlasStore, type Workspace } from "@atlas/core";
+import { type AtlasStore, type Workspace, getWhatsAppCredentials } from "@atlas/core";
 import { Hono } from "hono";
 import { z } from "zod";
 import { handleFlowsEndpoint } from "./flows-crypto.js";
@@ -46,14 +46,15 @@ export function createWhatsAppApp(store: AtlasStore): Hono<Vars> {
     const headerWs = c.req.header("x-atlas-workspace");
     const ws =
       (headerWs ? store.tryGetWorkspace(headerWs) : undefined) ??
-      store.listWorkspaces().find((w) => w.credentials.whatsapp?.flowsPrivateKeyPem);
-    if (!ws?.credentials.whatsapp?.flowsPrivateKeyPem) {
+      store.listWorkspaces().find((w) => getWhatsAppCredentials(w)?.flowsPrivateKeyPem);
+    const waCreds = ws ? getWhatsAppCredentials(ws) : undefined;
+    if (!ws || !waCreds?.flowsPrivateKeyPem) {
       return c.json({ error: "No workspace with Flows keys" }, 400);
     }
     const body = await c.req.json().catch(() => null);
     if (!body?.encrypted_aes_key) return c.json({ error: "Invalid Flows body" }, 400);
     try {
-      const ciphertext = handleFlowsEndpoint(body, ws.credentials.whatsapp.flowsPrivateKeyPem);
+      const ciphertext = handleFlowsEndpoint(body, waCreds.flowsPrivateKeyPem);
       store.appendEvent(ws, {
         provider: "whatsapp",
         type: "flows.endpoint",
@@ -83,7 +84,8 @@ export function createWhatsAppApp(store: AtlasStore): Hono<Vars> {
     const ws =
       (headerWs ? store.tryGetWorkspace(headerWs) : undefined) ??
       store.findWorkspaceByWhatsAppToken(token);
-    if (!ws?.credentials.whatsapp || ws.credentials.whatsapp.accessToken !== token) {
+    const waAuthCreds = ws ? getWhatsAppCredentials(ws) : undefined;
+    if (!ws || !waAuthCreds || waAuthCreds.accessToken !== token) {
       return graphError(c, 401, "Invalid OAuth access token.", 190);
     }
     c.set("workspace", ws);

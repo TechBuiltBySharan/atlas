@@ -33,6 +33,7 @@ function usage() {
 
 Usage:
   atlas health
+  atlas providers list
   atlas bootstrap [workspaceId] [--webhook-base <url>]
   atlas workspace create [id]
   atlas workspace get <id>
@@ -44,6 +45,7 @@ Usage:
   atlas failures <workspaceId> <rules.json>
   atlas clock advance <workspaceId> <ms>
   atlas events <workspaceId>
+  atlas scenario list
   atlas scenario run <workspaceId> <file.json>
   atlas razorpay pay <workspaceId> <orderId>
   atlas razorpay pay-link <workspaceId> <paymentLinkId>
@@ -165,6 +167,10 @@ async function main() {
   }
 
   switch (cmd) {
+    case "providers": {
+      if (args[0] === "list") return api("/control/v1/providers");
+      break;
+    }
     case "health":
       return api("/health");
     case "bootstrap": {
@@ -231,6 +237,17 @@ async function main() {
       if (args[0]) return api(`/control/v1/workspaces/${args[0]}/events`);
       break;
     case "scenario": {
+      if (args[0] === "list") {
+        const { readFile } = await import("node:fs/promises");
+        const { fileURLToPath } = await import("node:url");
+        const path = await import("node:path");
+        const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+        const catalog = JSON.parse(await readFile(path.join(root, "scenarios/index.json"), "utf8")) as {
+          scenarios: Array<{ id: string; name: string; tags: string[]; path: string }>;
+        };
+        console.log(JSON.stringify(catalog.scenarios, null, 2));
+        return;
+      }
       if (args[0] === "run" && args[1] && args[2]) {
         const { readFile } = await import("node:fs/promises");
         const scenario = JSON.parse(await readFile(args[2], "utf8"));

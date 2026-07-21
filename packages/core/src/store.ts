@@ -2,8 +2,10 @@ import {
   type AtlasEvent,
   type FailureRule,
   type ProviderName,
+  type RazorpayCredentials,
   type ScheduledWebhook,
   type WebhookTarget,
+  type WhatsAppCredentials,
   type Workspace,
   createId,
   entityKey,
@@ -12,8 +14,19 @@ import {
   randomSecret,
 } from "./types.js";
 
+export type WebhookSignerFn = (
+  target: WebhookTarget,
+  body: string,
+  creds: unknown,
+) => Record<string, string>;
+
 export class AtlasStore {
   private workspaces = new Map<string, Workspace>();
+  private webhookSigners: Record<string, WebhookSignerFn> = {};
+
+  setWebhookSigners(signers: Record<string, WebhookSignerFn>): void {
+    this.webhookSigners = { ...this.webhookSigners, ...signers };
+  }
 
   createWorkspace(id?: string, clockMode: "virtual" | "realtime" = "virtual"): Workspace {
     const workspaceId = id ?? createId("ws", this.workspaces.size + 1);
@@ -150,9 +163,9 @@ export class AtlasStore {
     });
   }
 
-  issueRazorpayCredentials(ws: Workspace): NonNullable<Workspace["credentials"]["razorpay"]> {
+  issueRazorpayCredentials(ws: Workspace): RazorpayCredentials {
     const n = this.nextCounter(ws, "rzp_key");
-    const creds = {
+    const creds: RazorpayCredentials = {
       keyId: `rzp_test_atlas_${n}`,
       keySecret: randomSecret(16),
       webhookSecret: randomSecret(16),
@@ -162,10 +175,7 @@ export class AtlasStore {
     return creds;
   }
 
-  issueWhatsAppCredentials(
-    ws: Workspace,
-    opts?: Partial<NonNullable<Workspace["credentials"]["whatsapp"]>>,
-  ): NonNullable<Workspace["credentials"]["whatsapp"]> {
+  issueWhatsAppCredentials(ws: Workspace, opts?: Partial<WhatsAppCredentials>): WhatsAppCredentials {
     const n = this.nextCounter(ws, "wa_phone");
     const pair = generateFlowsKeyPair();
     const creds = {
@@ -186,21 +196,24 @@ export class AtlasStore {
 
   findWorkspaceByRazorpayKey(keyId: string): Workspace | undefined {
     for (const ws of this.workspaces.values()) {
-      if (ws.credentials.razorpay?.keyId === keyId) return ws;
+      const creds = ws.credentials.razorpay as RazorpayCredentials | undefined;
+      if (creds?.keyId === keyId) return ws;
     }
     return undefined;
   }
 
   findWorkspaceByWhatsAppToken(token: string): Workspace | undefined {
     for (const ws of this.workspaces.values()) {
-      if (ws.credentials.whatsapp?.accessToken === token) return ws;
+      const creds = ws.credentials.whatsapp as WhatsAppCredentials | undefined;
+      if (creds?.accessToken === token) return ws;
     }
     return undefined;
   }
 
   findWorkspaceByPhoneNumberId(phoneNumberId: string): Workspace | undefined {
     for (const ws of this.workspaces.values()) {
-      if (ws.credentials.whatsapp?.phoneNumberId === phoneNumberId) return ws;
+      const creds = ws.credentials.whatsapp as WhatsAppCredentials | undefined;
+      if (creds?.phoneNumberId === phoneNumberId) return ws;
     }
     return undefined;
   }
@@ -267,7 +280,8 @@ export class AtlasStore {
     // over, and delivery must send these same bytes even if `payload` embeds a
     // reference to an entity that a later synchronous call goes on to mutate.
     const body = JSON.stringify(payload);
-    const headers = this.buildWebhookHeaders(provider, target, body);
+    const creds = ws.credentials[provider];
+    const headers = this.buildWebhookHeaders(provider, target, body, creds);
     const jobs: ScheduledWebhook[] = [];
     for (let i = 0; i < copies; i++) {
       const job: ScheduledWebhook = {
@@ -299,7 +313,12 @@ export class AtlasStore {
     provider: ProviderName,
     target: WebhookTarget,
     body: string,
+    creds?: unknown,
   ): Record<string, string> {
+    const signer = this.webhookSigners[provider];
+    if (signer) {
+      return signer(target, body, creds ?? {});
+    }
     if (provider === "razorpay") {
       return {
         "Content-Type": "application/json",

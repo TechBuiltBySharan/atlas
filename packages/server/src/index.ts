@@ -2,11 +2,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AtlasStore } from "@atlas/core";
-import { createRazorpayApp } from "@atlas/providers-razorpay";
-import { createWhatsAppApp } from "@atlas/providers-whatsapp";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createControlApp } from "./control.js";
+import { createProviderRegistry } from "./providers.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const siteDir = path.join(repoRoot, "site");
@@ -40,8 +39,12 @@ async function serveFile(root: string, reqPath: string): Promise<Response | null
   }
 }
 
-export function createAtlasApp(store = new AtlasStore()): Hono {
+export function createAtlasApp(
+  store = new AtlasStore(),
+  registry = createProviderRegistry(),
+): Hono {
   const app = new Hono();
+  registry.attachToStore(store);
 
   // Consumer apps' frontends (checkout.js, browser-driven flows) run on a
   // different origin than Atlas — permissive CORS is fine here since this is
@@ -52,17 +55,23 @@ export function createAtlasApp(store = new AtlasStore()): Hono {
     c.json({
       ok: true,
       service: "atlas",
-      version: "0.1.0",
+      version: "0.2.0",
       banner: "ATLAS SIMULATION — NOT REAL MONEY / NOT REAL META",
       workspaces: store.listWorkspaces().length,
+      providers: registry.list().map((m) => m.id),
     }),
   );
 
-  app.route("/control/v1", createControlApp(store));
-  app.route("/razorpay", createRazorpayApp(store));
-  app.route("/whatsapp/v22.0", createWhatsAppApp(store));
-  // Also accept version-less mount for convenience
-  app.route("/whatsapp", createWhatsAppApp(store));
+  app.route("/control/v1", createControlApp(store, registry));
+
+  const mounted = new Set<string>();
+  for (const mod of registry.list()) {
+    for (const mountPath of mod.mountPaths) {
+      if (mounted.has(mountPath)) continue;
+      mounted.add(mountPath);
+      app.route(mountPath, mod.createApp(store));
+    }
+  }
 
   app.get("/docs/*", async (c) => {
     const sub = c.req.path.replace(/^\/docs\/?/, "");

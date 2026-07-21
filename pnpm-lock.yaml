@@ -59,11 +59,33 @@ importers:
         specifier: ^5.8.2
         version: 5.9.3
 
+  packages/provider-sdk:
+    dependencies:
+      '@atlas/core':
+        specifier: workspace:*
+        version: link:../core
+      hono:
+        specifier: ^4.7.4
+        version: 4.12.29
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.20.1
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
   packages/providers-razorpay:
     dependencies:
       '@atlas/core':
         specifier: workspace:*
         version: link:../core
+      '@atlas/provider-sdk':
+        specifier: workspace:*
+        version: link:../provider-sdk
       hono:
         specifier: ^4.7.4
         version: 4.12.29
@@ -83,6 +105,9 @@ importers:
       '@atlas/core':
         specifier: workspace:*
         version: link:../core
+      '@atlas/provider-sdk':
+        specifier: workspace:*
+        version: link:../provider-sdk
       hono:
         specifier: ^4.7.4
         version: 4.12.29
@@ -105,6 +130,9 @@ importers:
       '@atlas/core':
         specifier: workspace:*
         version: link:../core
+      '@atlas/provider-sdk':
+        specifier: workspace:*
+        version: link:../provider-sdk
       '@atlas/providers-razorpay':
         specifier: workspace:*
         version: link:../providers-razorpay

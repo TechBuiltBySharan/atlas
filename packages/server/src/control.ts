@@ -1,77 +1,54 @@
 import {
   AtlasStore,
   type FailureRule,
+  getWhatsAppCredentials,
   runScenario,
 } from "@atlas/core";
+import type { ProviderRegistry } from "@atlas/provider-sdk";
 import { RazorpayService } from "@atlas/providers-razorpay";
 import { WhatsAppService } from "@atlas/providers-whatsapp";
 import { Hono } from "hono";
 import { z } from "zod";
 
-const failureRuleSchema = z.union([
-  z.object({
-    type: z.literal("razorpay.payment.fail_next"),
-    count: z.number().int().positive(),
-    reason: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("whatsapp.send.fail_next"),
-    count: z.number().int().positive(),
-    code: z.number().optional(),
-    message: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("whatsapp.rate_limit"),
-    remaining: z.number().int().nonnegative(),
-  }),
-  z.object({
-    type: z.literal("webhook.delay"),
-    provider: z.enum(["razorpay", "whatsapp"]),
-    ms: z.number().int().nonnegative(),
-    count: z.number().int().positive(),
-    event: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("webhook.duplicate"),
-    provider: z.enum(["razorpay", "whatsapp"]),
-    count: z.number().int().positive(),
-    event: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("webhook.drop"),
-    provider: z.enum(["razorpay", "whatsapp"]),
-    count: z.number().int().positive(),
-    event: z.string().optional(),
-  }),
-]);
+function buildFailureRuleSchema(registry: ProviderRegistry) {
+  const providerSpecific = registry.list().flatMap((m) => m.failureRuleSchemas);
+  const webhookRules = [
+    z.object({
+      type: z.literal("webhook.delay"),
+      provider: z.string().min(1),
+      ms: z.number().int().nonnegative(),
+      count: z.number().int().positive(),
+      event: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal("webhook.duplicate"),
+      provider: z.string().min(1),
+      count: z.number().int().positive(),
+      event: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal("webhook.drop"),
+      provider: z.string().min(1),
+      count: z.number().int().positive(),
+      event: z.string().optional(),
+    }),
+  ];
+  const all = [...providerSpecific, ...webhookRules];
+  return z.union(all as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]]);
+}
 
-function serializeWorkspace(ws: ReturnType<AtlasStore["getWorkspace"]>) {
+function serializeWorkspace(ws: ReturnType<AtlasStore["getWorkspace"]>, registry: ProviderRegistry) {
+  const credentials: Record<string, unknown> = {};
+  for (const mod of registry.list()) {
+    const creds = mod.getCredentials(ws);
+    credentials[mod.id] = creds ? (mod.redactCredentials?.(creds) ?? creds) : null;
+  }
   return {
     id: ws.id,
     createdAt: ws.createdAt,
     clockMs: ws.clockMs,
     clockMode: ws.clockMode,
-    credentials: {
-      razorpay: ws.credentials.razorpay
-        ? {
-            keyId: ws.credentials.razorpay.keyId,
-            keySecret: ws.credentials.razorpay.keySecret,
-            webhookSecret: ws.credentials.razorpay.webhookSecret,
-          }
-        : null,
-      whatsapp: ws.credentials.whatsapp
-        ? {
-            accessToken: ws.credentials.whatsapp.accessToken,
-            phoneNumberId: ws.credentials.whatsapp.phoneNumberId,
-            displayPhoneNumber: ws.credentials.whatsapp.displayPhoneNumber,
-            wabaId: ws.credentials.whatsapp.wabaId,
-            appSecret: ws.credentials.whatsapp.appSecret,
-            verifyToken: ws.credentials.whatsapp.verifyToken,
-            flowsPublicKeyPem: ws.credentials.whatsapp.flowsPublicKeyPem,
-            consumerFlowsPublicKeyPem: ws.credentials.whatsapp.consumerFlowsPublicKeyPem ?? null,
-          }
-        : null,
-    },
+    credentials,
     webhooks: ws.webhooks,
     failureRules: ws.failureRules,
     eventCount: ws.events.length,
@@ -87,10 +64,11 @@ function serializeWorkspace(ws: ReturnType<AtlasStore["getWorkspace"]>) {
   };
 }
 
-export function createControlApp(store: AtlasStore): Hono {
+export function createControlApp(store: AtlasStore, registry: ProviderRegistry): Hono {
   const app = new Hono();
   const razorpay = new RazorpayService(store);
   const whatsapp = new WhatsAppService(store);
+  const failureRuleSchema = buildFailureRuleSchema(registry);
 
   app.use("/*", async (c, next) => {
     const token = process.env.ATLAS_CONTROL_TOKEN;
@@ -112,7 +90,7 @@ export function createControlApp(store: AtlasStore): Hono {
     if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
     try {
       const ws = store.createWorkspace(parsed.data.id, parsed.data.clockMode ?? "virtual");
-      return c.json(serializeWorkspace(ws), 201);
+      return c.json(serializeWorkspace(ws, registry), 201);
     } catch (err) {
       return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
     }
@@ -120,13 +98,13 @@ export function createControlApp(store: AtlasStore): Hono {
 
   app.get("/workspaces", (c) => {
     return c.json({
-      items: store.listWorkspaces().map(serializeWorkspace),
+      items: store.listWorkspaces().map((ws) => serializeWorkspace(ws, registry)),
     });
   });
 
   app.get("/workspaces/:id", (c) => {
     try {
-      return c.json(serializeWorkspace(store.getWorkspace(c.req.param("id"))));
+      return c.json(serializeWorkspace(store.getWorkspace(c.req.param("id")), registry));
     } catch (err) {
       return c.json({ error: err instanceof Error ? err.message : String(err) }, 404);
     }
@@ -138,6 +116,71 @@ export function createControlApp(store: AtlasStore): Hono {
       return c.json({ ok: true });
     } catch (err) {
       return c.json({ error: err instanceof Error ? err.message : String(err) }, 404);
+    }
+  });
+
+  app.get("/providers", (c) => {
+    return c.json({
+      items: registry.list().map((m) => ({
+        id: m.id,
+        displayName: m.displayName,
+        description: m.description,
+        mountPaths: m.mountPaths,
+        controlOps: (m.controlOps ?? []).map((op) => ({
+          name: op.name,
+          method: op.method,
+          summary: op.summary,
+        })),
+      })),
+    });
+  });
+
+  app.post("/workspaces/:id/credentials/:providerId", async (c) => {
+    try {
+      const mod = registry.require(c.req.param("providerId"));
+      const ws = store.getWorkspace(c.req.param("id"));
+      const body = await c.req.json().catch(() => ({}));
+      const creds = mod.issueCredentials(store, ws, body);
+      return c.json(creds);
+    } catch (err) {
+      const status = err instanceof Error && err.message.startsWith("Unknown provider") ? 404 : 400;
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, status);
+    }
+  });
+
+  app.put("/workspaces/:id/webhooks/:providerId", async (c) => {
+    try {
+      const mod = registry.require(c.req.param("providerId"));
+      const ws = store.getWorkspace(c.req.param("id"));
+      const base = z.object({ url: z.string().url(), secret: z.string().min(1) });
+      const body =
+        mod.id === "whatsapp"
+          ? base
+              .extend({ appSecret: z.string().optional() })
+              .parse(await c.req.json())
+          : base.parse(await c.req.json());
+      store.setWebhook(ws, mod.id, body);
+      return c.json({ ok: true });
+    } catch (err) {
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+    }
+  });
+
+  app.post("/workspaces/:id/providers/:providerId/ops/:opName", async (c) => {
+    try {
+      const mod = registry.require(c.req.param("providerId"));
+      const op = (mod.controlOps ?? []).find((o) => o.name === c.req.param("opName"));
+      if (!op) return c.json({ error: `Unknown op: ${c.req.param("opName")}` }, 404);
+      const ws = store.getWorkspace(c.req.param("id"));
+      const body = await c.req.json().catch(() => ({}));
+      const params: Record<string, string> = {};
+      for (const [key, value] of Object.entries(c.req.param())) {
+        if (!["id", "providerId", "opName"].includes(key)) params[key] = value;
+      }
+      const result = await op.handler({ store, workspace: ws, params, body });
+      return c.json(result);
+    } catch (err) {
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
     }
   });
 
@@ -216,7 +259,10 @@ export function createControlApp(store: AtlasStore): Hono {
   app.get("/workspaces/:id/entities", (c) => {
     try {
       const ws = store.getWorkspace(c.req.param("id"));
-      const items = [...ws.entities.entries()].map(([key, value]) => ({ key, value }));
+      const providerFilter = c.req.query("provider");
+      const items = [...ws.entities.entries()]
+        .filter(([key]) => !providerFilter || key.startsWith(`${providerFilter}:`))
+        .map(([key, value]) => ({ key, value }));
       return c.json({ items });
     } catch (err) {
       return c.json({ error: err instanceof Error ? err.message : String(err) }, 404);
@@ -404,9 +450,11 @@ export function createControlApp(store: AtlasStore): Hono {
   app.put("/workspaces/:id/whatsapp/flows/consumer-public-key", async (c) => {
     try {
       const ws = store.getWorkspace(c.req.param("id"));
-      if (!ws.credentials.whatsapp) return c.json({ error: "WhatsApp credentials not issued" }, 400);
+      const waCreds = getWhatsAppCredentials(ws);
+      if (!waCreds) return c.json({ error: "WhatsApp credentials not issued" }, 400);
       const body = z.object({ publicKeyPem: z.string().min(1) }).parse(await c.req.json());
-      ws.credentials.whatsapp.consumerFlowsPublicKeyPem = body.publicKeyPem;
+      waCreds.consumerFlowsPublicKeyPem = body.publicKeyPem;
+      ws.credentials.whatsapp = waCreds;
       return c.json({ ok: true });
     } catch (err) {
       return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
@@ -416,7 +464,7 @@ export function createControlApp(store: AtlasStore): Hono {
   app.post("/workspaces/:id/whatsapp/flows/post-to-consumer", async (c) => {
     try {
       const ws = store.getWorkspace(c.req.param("id"));
-      const creds = ws.credentials.whatsapp;
+      const creds = getWhatsAppCredentials(ws);
       if (!creds) return c.json({ error: "WhatsApp credentials not issued" }, 400);
       const body = z
         .object({

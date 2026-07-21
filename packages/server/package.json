@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@atlas/core": "workspace:*",
+    "@atlas/provider-sdk": "workspace:*",
     "@atlas/providers-razorpay": "workspace:*",
     "@atlas/providers-whatsapp": "workspace:*",
     "@hono/node-server": "^1.14.1",

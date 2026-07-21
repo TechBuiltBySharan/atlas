@@ -13,6 +13,8 @@ Stateful simulation platform for external provider APIs.
 - [Consumer guide](docs/CONSUMER_GUIDE.md) — generic app wiring
 - [Phase 1 status](docs/PHASE_1.md) — first live slice
 - [Phase 2 status](docs/PHASE_2.md) — deepen twins for Sociatribe
+- [Phase 3 status](docs/PHASE_3.md) — plugin architecture (in progress)
+- [Provider SDK](docs/PROVIDER_SDK.md) — build a new provider module
 - Root pointer: [`AGENTS.md`](AGENTS.md)
 
 ## Quick start
@@ -64,6 +66,7 @@ Example agent prompt:
 | Package | Role |
 |---|---|
 | `@atlas/core` | Workspaces, clock, events, webhooks, failures, scenarios |
+| `@atlas/provider-sdk` | Provider module contract + registry |
 | `@atlas/providers-razorpay` | Razorpay-compatible API |
 | `@atlas/providers-whatsapp` | WhatsApp Graph-compatible API |
 | `@atlas/server` | HTTP server |

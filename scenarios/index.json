@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "north-star",
+      "name": "North star chaos",
+      "description": "Fail payments, delay/duplicate webhooks, settle order",
+      "providers": ["razorpay"],
+      "tags": ["chaos", "payments", "razorpay"],
+      "path": "examples/north-star.scenario.json"
+    },
+    {
+      "id": "ticket-purchase",
+      "name": "Ticket purchase",
+      "description": "Order paid and payment captured",
+      "providers": ["razorpay"],
+      "tags": ["payments", "razorpay", "happy-path"],
+      "path": "examples/ticket-purchase.scenario.json"
+    },
+    {
+      "id": "subscription-lifecycle",
+      "name": "Subscription lifecycle",
+      "description": "Plan, active subscription, charged invoice",
+      "providers": ["razorpay"],
+      "tags": ["subscription", "razorpay"],
+      "path": "examples/subscription-lifecycle.scenario.json"
+    },
+    {
+      "id": "refund-after-capture",
+      "name": "Refund after capture",
+      "description": "Capture payment then process refund",
+      "providers": ["razorpay"],
+      "tags": ["payments", "refund", "razorpay"],
+      "path": "examples/refund-after-capture.scenario.json"
+    },
+    {
+      "id": "wa-flow-submit",
+      "name": "WhatsApp flow submit",
+      "description": "Inbound flow message and webhook",
+      "providers": ["whatsapp"],
+      "tags": ["messaging", "flows", "whatsapp"],
+      "path": "examples/wa-flow-submit.scenario.json"
+    }
+  ]
+}
