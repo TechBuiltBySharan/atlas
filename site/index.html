@@ -61,12 +61,12 @@
       <div class="hero-copy">
         <p class="hero-brand" id="hero-brand">Atlas</p>
         <h1 class="hero-title">
-          Every external dependency,<br />
-          replaceable with a living twin.
+          Reproduce the provider failures<br />
+          your app must survive.
         </h1>
         <p class="hero-lede">
-          Stateful simulators for Razorpay, WhatsApp, and the APIs your product depends on —
-          deterministic when you need it, chaotic when you ask.
+          Stateful Razorpay and WhatsApp simulators available today — deterministic for CI,
+          steerable for agents, and chaotic when you ask.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="#start">Start simulating</a>
@@ -316,10 +316,11 @@
       <div class="section-inner narrow">
         <p class="eyebrow">Get started</p>
         <h2 id="start-title">Spin up a twin in under a minute</h2>
-        <pre class="install"><code>pnpm install
-pnpm test
-pnpm dev
-# → http://127.0.0.1:4400</code></pre>
+        <pre class="install"><code>npm install -g atlas-engine
+atlas serve
+# → http://127.0.0.1:4400
+
+atlas bootstrap my-app</code></pre>
         <div class="hero-actions">
           <a class="btn btn-primary" href="/docs/VISION.md">Read the vision</a>
           <a class="btn btn-ghost" href="/docs/CONSUMER_GUIDE.md">Consumer guide</a>
@@ -337,7 +338,7 @@ pnpm dev
     <div class="footer-inner">
       <p class="footer-brand"><span class="mark" aria-hidden="true"></span> Atlas</p>
       <p class="footer-tag">Stateful simulators for the APIs your product depends on.</p>
-      <p class="footer-meta">Phase 2 · MIT · Independent of any single consumer app</p>
+      <p class="footer-meta">v0.1 · MIT · Razorpay + WhatsApp available today</p>
     </div>
   </footer>
 

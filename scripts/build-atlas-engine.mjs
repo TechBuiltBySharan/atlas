@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync, chmodSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, cpSync, rmSync, chmodSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,8 +25,12 @@ await build({
   // Only the real npm packages stay external — everything under @atlas/* is a
   // workspace:* package with no published npm counterpart, so it must be bundled in.
   external: ["hono", "@hono/node-server", "zod"],
+  define: {
+    "process.env.ATLAS_BUILD_VERSION": JSON.stringify(rootPkg.version),
+    "process.env.ATLAS_BUILD_LAYOUT": JSON.stringify("package"),
+  },
 });
-chmodSync(path.join(outDir, "atlas.js"), 0o755);
+if (process.platform !== "win32") chmodSync(path.join(outDir, "atlas.js"), 0o755);
 
 const publishPkg = {
   name: "atlas-engine",
@@ -43,12 +47,17 @@ const publishPkg = {
   ],
   engines: { node: ">=22" },
   bin: { atlas: "./atlas.js" },
-  files: ["atlas.js", "README.md", "LICENSE"],
-  dependencies: { hono: "^4.7.4", "@hono/node-server": "^1.14.1", zod: "^3.24.2" },
+  files: ["atlas.js", "site", "docs", "README.md", "LICENSE"],
+  dependencies: { hono: "^4.13.5", "@hono/node-server": "^1.19.15", zod: "^3.24.2" },
 };
 
 writeFileSync(path.join(outDir, "package.json"), JSON.stringify(publishPkg, null, 2) + "\n");
 copyFileSync(path.join(repoRoot, "LICENSE"), path.join(outDir, "LICENSE"));
+cpSync(path.join(repoRoot, "site"), path.join(outDir, "site"), { recursive: true });
+mkdirSync(path.join(outDir, "docs"), { recursive: true });
+for (const name of ["CONSUMER_GUIDE.md", "PROVIDER_SDK.md"]) {
+  copyFileSync(path.join(repoRoot, "docs", name), path.join(outDir, "docs", name));
+}
 
 writeFileSync(
   path.join(outDir, "README.md"),

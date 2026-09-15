@@ -18,10 +18,20 @@
     "mcp": "pnpm --filter @atlas/mcp start",
     "compose:up": "docker compose up --build",
     "compose:down": "docker compose down",
-    "build:engine": "node scripts/build-atlas-engine.mjs"
+    "build:engine": "node scripts/build-atlas-engine.mjs",
+    "smoke:package": "node scripts/smoke-test-package.mjs"
   },
   "license": "MIT",
+  "pnpm": {
+    "overrides": {
+      "fast-uri": "3.1.8",
+      "ip-address": "10.7.2",
+      "nanoid": "3.3.19",
+      "postcss": "8.5.28",
+      "qs": "6.16.0"
+    }
+  },
   "devDependencies": {
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.2"
   }
 }

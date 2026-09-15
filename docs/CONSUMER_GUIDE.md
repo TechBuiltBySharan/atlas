@@ -5,27 +5,30 @@ Atlas is a drop-in simulation twin. Your app keeps its real Razorpay/WhatsApp cl
 ## 1. Start Atlas
 
 ```bash
-pnpm install
-pnpm dev
+# Node 22+
+npm install -g atlas-engine
+atlas serve
 # http://127.0.0.1:4400
 ```
+
+For source development, run `pnpm install` and `pnpm dev` instead.
 
 ## 2. Create a workspace + credentials
 
 ```bash
-pnpm atlas -- workspace create sociatribe-local
-pnpm atlas -- creds razorpay sociatribe-local
-pnpm atlas -- creds whatsapp sociatribe-local
+atlas workspace create sociatribe-local
+atlas creds razorpay sociatribe-local
+atlas creds whatsapp sociatribe-local
 ```
 
 Point webhooks at your app:
 
 ```bash
-pnpm atlas -- webhook razorpay sociatribe-local \
+atlas webhook razorpay sociatribe-local \
   http://127.0.0.1:3000/api/webhooks/razorpay \
   <webhookSecret from creds>
 
-pnpm atlas -- webhook whatsapp sociatribe-local \
+atlas webhook whatsapp sociatribe-local \
   http://127.0.0.1:3000/api/webhooks/whatsapp \
   <appSecret from creds>
 ```

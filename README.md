@@ -19,24 +19,28 @@ Stateful simulation platform for external provider APIs.
 
 ## Quick start
 
+Install the published CLI with Node 22+:
+
 ```bash
-# Node 22+
-pnpm install
-pnpm test
-pnpm dev
+npm install -g atlas-engine
+atlas serve
 # API + landing page → http://127.0.0.1:4400
 ```
 
-Landing page (product site): open `http://127.0.0.1:4400/` after `pnpm dev`.
+In another terminal:
 
 ```bash
-# One-shot workspace for Sociatribe
-pnpm atlas -- bootstrap sociatribe-local --webhook-base http://127.0.0.1:3000
+atlas health
+atlas bootstrap my-app --webhook-base http://127.0.0.1:3000
+```
 
-# Or manual:
-pnpm atlas -- workspace create demo
-pnpm atlas -- creds razorpay demo
-pnpm atlas -- creds whatsapp demo
+To contribute from source:
+
+```bash
+pnpm install
+pnpm test
+pnpm dev
+pnpm atlas -- bootstrap sociatribe-local --webhook-base http://127.0.0.1:3000
 ```
 
 Point your app at:

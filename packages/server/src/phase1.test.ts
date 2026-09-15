@@ -24,6 +24,17 @@ async function listen(): Promise<{ url: string; close: () => Promise<void>; bodi
 }
 
 describe("Atlas Phase 1 live slice", () => {
+  it("reports the published package version", async () => {
+    const app = createAtlasApp();
+    const response = await app.request("/health");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      ok: true,
+      service: "atlas",
+      version: "0.1.0",
+    });
+  });
+
   it("fails payments, delays+duplicates webhook, then settles order", async () => {
     const app = createAtlasApp();
     const receiver = await listen();
