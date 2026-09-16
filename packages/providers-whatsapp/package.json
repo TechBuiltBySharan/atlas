@@ -16,12 +16,13 @@
   "dependencies": {
     "@atlas/core": "workspace:*",
     "@atlas/provider-sdk": "workspace:*",
-    "hono": "^4.7.4",
+    "hono": "^4.13.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
     "typescript": "^5.8.2",
-    "vitest": "^3.0.9"
+    "vitest": "^4.1.11"
   }
 }
+

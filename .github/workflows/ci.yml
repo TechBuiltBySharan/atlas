@@ -9,8 +9,12 @@ on:
 
 jobs:
   validate:
-    name: Validate
-    runs-on: ubuntu-latest
+    name: Validate (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -23,7 +27,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22.x
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -37,13 +41,5 @@ jobs:
       - name: Build atlas-engine
         run: pnpm run build:engine
 
-      - name: Packaging smoke test
-        run: |
-          cd dist-atlas-engine
-          npm pack
-          mkdir /tmp/atlas-engine-smoke && cd /tmp/atlas-engine-smoke
-          npm init -y
-          npm install "$GITHUB_WORKSPACE/dist-atlas-engine"/atlas-engine-*.tgz
-          ATLAS_PORT=4499 node node_modules/atlas-engine/atlas.js serve &
-          sleep 3
-          curl -sf http://127.0.0.1:4499/health
+      - name: Install and run packed artifact
+        run: pnpm run smoke:package

@@ -7,7 +7,11 @@ import { cors } from "hono/cors";
 import { createControlApp } from "./control.js";
 import { createProviderRegistry } from "./providers.js";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = process.env.ATLAS_BUILD_LAYOUT === "package"
+  ? moduleDir
+  : path.resolve(moduleDir, "../../..");
+const atlasVersion = process.env.ATLAS_BUILD_VERSION ?? "0.1.0";
 const siteDir = path.join(repoRoot, "site");
 const docsDir = path.join(repoRoot, "docs");
 
@@ -55,7 +59,7 @@ export function createAtlasApp(
     c.json({
       ok: true,
       service: "atlas",
-      version: "0.2.0",
+      version: atlasVersion,
       banner: "ATLAS SIMULATION — NOT REAL MONEY / NOT REAL META",
       workspaces: store.listWorkspaces().length,
       providers: registry.list().map((m) => m.id),

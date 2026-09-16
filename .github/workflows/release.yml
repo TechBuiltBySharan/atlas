@@ -38,6 +38,9 @@ jobs:
       - name: Build atlas-engine
         run: pnpm run build:engine
 
+      - name: Validate packed artifact
+        run: pnpm run smoke:package
+
       - name: Determine npm dist-tag
         id: npm_tag
         run: |
@@ -55,7 +58,7 @@ jobs:
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             dist-atlas-engine/atlas.js
